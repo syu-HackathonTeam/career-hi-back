@@ -1,0 +1,5 @@
+rootProject.name = 'career-hi'
+
+include 'career-hi-common'
+include 'career-hi-collector'
+include 'career-hi-api'
