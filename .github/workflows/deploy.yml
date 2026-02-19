@@ -1,0 +1,44 @@
+name: Deploy to OCI
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean bootJar
+
+      - name: Transfer Jar to Server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          source: "build/libs/*.jar"
+          target: "/home/ubuntu/app"
+          strip_components: 2
+
+      - name: Execute Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          script: |
+            sudo fuser -k 8080/tcp || true
+            
+            nohup java -jar -Duser.timezone=Asia/Seoul -DDB_USERNAME=root -DDB_PASSWORD=${{ secrets.DB_PASSWORD }} /home/ubuntu/app/*.jar > /home/ubuntu/nohup.out 2>&1 &
