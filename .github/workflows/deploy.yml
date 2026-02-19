@@ -40,10 +40,7 @@ jobs:
           key: ${{ secrets.KEY }}
           script: |
             sudo fuser -k 8080/tcp || true
-            
             rm -f /home/ubuntu/app/*-plain.jar
-            rm -f /home/ubuntu/app/career-hi-common-*.jar
-            rm -f /home/ubuntu/app/career-hi-collector-*.jar
             
             nohup java -jar -Duser.timezone=Asia/Seoul \
               -DDB_USERNAME=root \
