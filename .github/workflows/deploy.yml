@@ -16,11 +16,8 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
       - name: Build with Gradle
-        run: ./gradlew clean bootJar
+        run: ./gradlew clean build -x test
 
       - name: Transfer Jar to Server
         uses: appleboy/scp-action@master
@@ -28,9 +25,9 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
-          source: "build/libs/*.jar"
+          source: "**/build/libs/*.jar"
           target: "/home/ubuntu/app"
-          strip_components: 2
+          strip_components: 3
 
       - name: Execute Server
         uses: appleboy/ssh-action@master
@@ -41,4 +38,11 @@ jobs:
           script: |
             sudo fuser -k 8080/tcp || true
             
-            nohup java -jar -Duser.timezone=Asia/Seoul -DDB_USERNAME=root -DDB_PASSWORD=${{ secrets.DB_PASSWORD }} /home/ubuntu/app/*.jar > /home/ubuntu/nohup.out 2>&1 &
+            rm -f /home/ubuntu/app/*-plain.jar
+            rm -f /home/ubuntu/app/career-hi-common-*.jar
+            rm -f /home/ubuntu/app/career-hi-collector-*.jar
+            
+            nohup java -jar -Duser.timezone=Asia/Seoul \
+              -DDB_USERNAME=root \
+              -DDB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+              /home/ubuntu/app/*.jar > /home/ubuntu/nohup.out 2>&1 &
