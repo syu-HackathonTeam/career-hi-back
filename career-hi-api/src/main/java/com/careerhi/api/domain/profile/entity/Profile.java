@@ -34,8 +34,8 @@ public class Profile {
 
     private String schoolName; // 학교명
     private String major; // 전공
-    private String grade; // 학년
-    private String semester; // 학기
+    private String educationLevel; // 최종학력 (예: 대학교 이상 졸업)
+    private String schoolType; // 대학 종류 (예: 대학교 (4년제))
 
     // [직업 정보]
     @Enumerated(EnumType.STRING)
@@ -76,7 +76,7 @@ public class Profile {
 
     @Builder
     public Profile(User user, String name, AcademicStatus academicStatus, String schoolName,
-                   String major, String grade, String semester, JobCategory targetJob,
+                   String major, String educationLevel, String schoolType, JobCategory targetJob,
                    List<String> subRoles, List<String> certificates, List<String> codingLanguages,
                    List<LanguageTest> languageTests, List<Award> awards,
                    String portfolioUrl, String portfolioFileUrl) {
@@ -85,8 +85,8 @@ public class Profile {
         this.academicStatus = academicStatus;
         this.schoolName = schoolName;
         this.major = major;
-        this.grade = grade;
-        this.semester = semester;
+        this.educationLevel = educationLevel; // <- 할당 부분 수정
+        this.schoolType = schoolType;         // <- 할당 부분 수정
         this.targetJob = targetJob;
         this.subRoles = subRoles;
         this.certificates = certificates;

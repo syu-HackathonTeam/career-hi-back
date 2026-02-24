@@ -14,16 +14,9 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 public class ProfileSaveRequest {
 
-    // 1. 기본 정보
     @NotNull private BasicInfo basicInfo;
-
-    // 2. 직업 정보
     @NotNull private JobInfo jobInfo;
-
-    // 3. 스펙 정보
     @NotNull private SpecInfo specInfo;
-
-    // 4. 포트폴리오
     private String portfolioUrl;
 
     // --- 내부 클래스로 구조화 ---
@@ -33,8 +26,14 @@ public class ProfileSaveRequest {
         @NotNull private AcademicStatus academicStatus;
         @NotBlank private String schoolName;
         @NotBlank private String major;
-        private String grade;
-        private String semester;
+
+        // [수정] 기존 grade, semester 삭제 -> 신규 필드 추가
+        // 필수 값이라면 @NotBlank, 선택이라면 삭제 가능. 우선은 필수로 생각.
+        @NotBlank
+        private String educationLevel;
+
+        @NotBlank
+        private String schoolType;
     }
 
     @Getter @NoArgsConstructor
@@ -68,21 +67,22 @@ public class ProfileSaveRequest {
     public Profile toEntity(User user) {
         return Profile.builder()
                 .user(user)
-                .name(this.basicInfo.name)
-                .academicStatus(this.basicInfo.academicStatus)
-                .schoolName(this.basicInfo.schoolName)
-                .major(this.basicInfo.major)
-                .grade(this.basicInfo.grade)
-                .semester(this.basicInfo.semester)
-                .targetJob(this.jobInfo.targetJob)
-                .subRoles(this.jobInfo.subRoles)
-                .certificates(this.specInfo.certificates)
-                .codingLanguages(this.specInfo.codingLanguages)
-                .languageTests(this.specInfo.languageTests.stream()
-                        .map(l -> new LanguageTest(l.testName, l.score, l.grade))
+                .name(this.basicInfo.getName()) // getter 사용 권장
+                .academicStatus(this.basicInfo.getAcademicStatus())
+                .schoolName(this.basicInfo.getSchoolName())
+                .major(this.basicInfo.getMajor())
+                // [수정] 빌더에 새 필드 주입
+                .educationLevel(this.basicInfo.getEducationLevel())
+                .schoolType(this.basicInfo.getSchoolType())
+                .targetJob(this.jobInfo.getTargetJob())
+                .subRoles(this.jobInfo.getSubRoles())
+                .certificates(this.specInfo.getCertificates())
+                .codingLanguages(this.specInfo.getCodingLanguages())
+                .languageTests(this.specInfo.getLanguageTests().stream()
+                        .map(l -> new LanguageTest(l.getTestName(), l.getScore(), l.getGrade()))
                         .collect(Collectors.toList()))
-                .awards(this.specInfo.awards.stream()
-                        .map(a -> new Award(a.contestName, a.awardName))
+                .awards(this.specInfo.getAwards().stream()
+                        .map(a -> new Award(a.getContestName(), a.getAwardName()))
                         .collect(Collectors.toList()))
                 .portfolioUrl(this.portfolioUrl)
                 .build();

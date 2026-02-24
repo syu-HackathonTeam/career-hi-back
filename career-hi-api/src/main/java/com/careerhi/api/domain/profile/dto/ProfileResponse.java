@@ -20,11 +20,13 @@ public class ProfileResponse {
     @Builder
     public static class BasicInfo {
         private String name;
-        private AcademicStatus academicStatus;
+        private AcademicStatus academicStatus; // Enum (재학/졸업 등)
         private String schoolName;
         private String major;
-        private String grade;
-        private String semester;
+
+        // [수정] 기존 grade, semester 삭제 -> 신규 필드 추가
+        private String educationLevel; // 최종학력
+        private String schoolType;     // 대학 종류
     }
 
     @Getter
@@ -58,7 +60,7 @@ public class ProfileResponse {
         private String awardName;
     }
 
-    // Entity -> DTO 변환 메서드 (Factory Method)
+    // Entity -> DTO 변환 메서드
     public static ProfileResponse from(Profile profile) {
         return ProfileResponse.builder()
                 .basicInfo(BasicInfo.builder()
@@ -66,8 +68,9 @@ public class ProfileResponse {
                         .academicStatus(profile.getAcademicStatus())
                         .schoolName(profile.getSchoolName())
                         .major(profile.getMajor())
-                        .grade(profile.getGrade())
-                        .semester(profile.getSemester())
+                        // [수정] 엔티티의 새 필드 매핑
+                        .educationLevel(profile.getEducationLevel())
+                        .schoolType(profile.getSchoolType())
                         .build())
                 .jobInfo(JobInfo.builder()
                         .targetJob(profile.getTargetJob())
