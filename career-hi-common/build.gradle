@@ -8,5 +8,10 @@ dependencies {
 	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 }
 
+test {
+	useJUnitPlatform()
+	failOnNoDiscoveredTests = false
+}
+
 bootJar { enabled = false }
 jar { enabled = true }

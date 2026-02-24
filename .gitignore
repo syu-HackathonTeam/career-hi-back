@@ -38,3 +38,6 @@ out/
 
 # Secret properties
 **/application-secret.properties
+
+*.sql
+backup.sql
