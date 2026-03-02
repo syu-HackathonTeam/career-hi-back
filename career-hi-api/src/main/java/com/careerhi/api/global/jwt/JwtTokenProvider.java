@@ -100,4 +100,14 @@ public class JwtTokenProvider {
             return e.getClaims();
         }
     }
+
+    // JwtTokenProvider.java 안에 추가
+    public String getEmailFromToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key) // 클래스 상단에 선언된 secret key 변수명 확인
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject(); // 보통 subject에 email을 넣어둡니다.
+    }
 }

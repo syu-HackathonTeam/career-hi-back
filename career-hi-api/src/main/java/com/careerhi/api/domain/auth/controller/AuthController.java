@@ -4,10 +4,14 @@ import com.careerhi.api.domain.auth.dto.LoginRequest;
 import com.careerhi.api.domain.auth.dto.SignupRequest;
 import com.careerhi.api.domain.auth.dto.SignupResponse;
 import com.careerhi.api.domain.auth.service.AuthService;
+import com.careerhi.common.exception.CustomException;
+import com.careerhi.common.exception.ErrorCode;
 import com.careerhi.common.response.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -31,5 +35,18 @@ public class AuthController {
     public ApiResponse<SignupResponse> login(@Valid @RequestBody LoginRequest request) {
         SignupResponse response = authService.login(request);
         return ApiResponse.success("로그인에 성공하였습니다.", response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE); // 에러 처리
+        }
+
+        String accessToken = authHeader.substring(7);
+        authService.logout(accessToken);
+        return ResponseEntity.ok(ApiResponse.success("로그아웃 되었습니다."));
     }
 }
