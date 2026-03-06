@@ -18,12 +18,19 @@ public enum ErrorCode {
     USER_NOT_FOUND(404, "USER_NOT_FOUND", "가입되지 않은 회원입니다."),
     EMAIL_DUPLICATED(409, "EMAIL_DUPLICATED", "이미 사용 중인 이메일입니다."),
 
-    // Profile (프로필) ★ 추가됨
+    // Profile (프로필)
     PROFILE_NOT_FOUND(404, "PROFILE_NOT_FOUND", "프로필 정보를 찾을 수 없습니다."),
 
-    // Report (리포트) ★ 추가됨
+    // Report (리포트)
     REPORT_NOT_FOUND(404, "REPORT_NOT_FOUND", "생성된 리포트를 찾을 수 없습니다."),
     AI_SERVICE_ERROR(500, "AI_SERVICE_ERROR", "AI 분석 중 오류가 발생했습니다."),
+
+    // File (파일 처리) ★ 신규 추가
+    FILE_SIZE_EXCEEDED(400, "FILE_SIZE_EXCEEDED", "파일 크기가 10MB를 초과했습니다."),
+    INVALID_FILE_TYPE(400, "INVALID_FILE_TYPE", "지원하지 않는 파일 형식입니다. PDF만 가능합니다."),
+    FILE_UPLOAD_ERROR(500, "FILE_UPLOAD_ERROR", "파일 업로드 중 서버 오류가 발생했습니다."),
+    FILE_NOT_FOUND(404, "FILE_NOT_FOUND", "해당 파일을 찾을 수 없습니다."),
+    FILE_DELETE_ERROR(500, "FILE_DELETE_ERROR", "파일 삭제 중 서버 오류가 발생했습니다."),
 
     // Server (서버 공통)
     INTERNAL_SERVER_ERROR(500, "INTERNAL_SERVER_ERROR", "서버 내부 오류가 발생했습니다.");

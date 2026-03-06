@@ -1,6 +1,8 @@
 package com.careerhi.api.domain.file.service;
 
 import com.careerhi.api.domain.file.dto.FileResponse;
+import com.careerhi.common.exception.CustomException;
+import com.careerhi.common.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,5 +43,17 @@ public class LocalFileService implements FileService {
         String fileUrl = "http://localhost:8080/uploads/" + savedFileName;
 
         return new FileResponse(originalFileName, fileUrl);
+    }
+
+    @Override
+    public void delete(String fileName) {
+        File file = new File(Paths.get(uploadDir, fileName).toString());
+        if (file.exists()) {
+            if (!file.delete()) {
+                throw new RuntimeException("로컬 파일 삭제에 실패했습니다.");
+            }
+        } else {
+            throw new CustomException(ErrorCode.FILE_NOT_FOUND);
+        }
     }
 }
