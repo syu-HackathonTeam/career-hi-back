@@ -5,6 +5,7 @@ import com.careerhi.api.global.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -35,8 +36,9 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         // 로그인, 회원가입, H2 콘솔은 허용
-                        .requestMatchers("/", "/api/v1/auth/**", "/h2-console/**").permitAll()
+                        .requestMatchers("/", "/api/v1/auth/**", "/h2-console/**", "/api/health").permitAll()
                         // 그 외 모든 요청은 인증(토큰) 필요!
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 // ★ JWT 필터 추가: UsernamePasswordAuthenticationFilter 앞에서 미리 검사
