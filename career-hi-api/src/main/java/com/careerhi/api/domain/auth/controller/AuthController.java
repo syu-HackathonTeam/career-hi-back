@@ -1,8 +1,6 @@
 package com.careerhi.api.domain.auth.controller;
 
-import com.careerhi.api.domain.auth.dto.LoginRequest;
-import com.careerhi.api.domain.auth.dto.SignupRequest;
-import com.careerhi.api.domain.auth.dto.SignupResponse;
+import com.careerhi.api.domain.auth.dto.*;
 import com.careerhi.api.domain.auth.service.AuthService;
 import com.careerhi.common.exception.CustomException;
 import com.careerhi.common.exception.ErrorCode;
@@ -48,5 +46,18 @@ public class AuthController {
         String accessToken = authHeader.substring(7);
         authService.logout(accessToken);
         return ResponseEntity.ok(ApiResponse.success("로그아웃 되었습니다."));
+    }
+
+    // 인증번호 발송
+    @PostMapping("/verify/send")
+    public ApiResponse<VerificationSendResponse> sendVerificationCode(@Valid @RequestBody VerificationSendRequest request) {
+        int expiryTime = authService.sendVerificationCode(request);
+        return ApiResponse.success("인증번호가 발송되었습니다.", new VerificationSendResponse(expiryTime));
+    }
+
+    @PostMapping("/verify/check")
+    public ApiResponse<Void> checkVerificationCode(@Valid @RequestBody VerificationCheckRequest request) {
+        authService.checkVerificationCode(request);
+        return ApiResponse.success("인증이 완료되었습니다.");
     }
 }

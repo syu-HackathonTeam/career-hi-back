@@ -1,9 +1,9 @@
 package com.careerhi.api.domain.auth.service;
 
-import com.careerhi.api.domain.auth.dto.LoginRequest;
-import com.careerhi.api.domain.auth.dto.SignupRequest;
-import com.careerhi.api.domain.auth.dto.SignupResponse;
+import com.careerhi.api.domain.auth.dto.*;
+import com.careerhi.api.domain.auth.entity.VerificationCode;
 import com.careerhi.api.domain.auth.repository.RefreshTokenRepository;
+import com.careerhi.api.domain.auth.repository.VerificationCodeRepository;
 import com.careerhi.api.domain.user.entity.User;
 import com.careerhi.api.domain.user.repository.UserRepository;
 import com.careerhi.api.global.jwt.JwtTokenProvider;
@@ -14,6 +14,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.Random;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -22,6 +25,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider; // 토큰 생성기 주입
     private final RefreshTokenRepository refreshTokenRepository; // [추가]
+    private final VerificationCodeRepository verificationCodeRepository;
 
     // [1] 회원가입
     @Transactional
@@ -73,6 +77,47 @@ public class AuthService {
 
         // 3. (심화) Redis를 쓰고 있다면 Access Token을 블랙리스트에 등록해서
         // 만료 전까지 재사용 못 하게 막는 로직을 여기에 추가 예정.... 언젠가 .. 하겠지 ...
+    }
+
+    @Transactional
+    public int sendVerificationCode(VerificationSendRequest request) {
+        // 기존 번호의 인증 데이터 삭제 (깔끔한 상태 유지)
+        verificationCodeRepository.deleteByPhoneNumberAndType(request.phoneNumber(), request.type());
+
+        // 6자리 인증번호 생성 (000000 ~ 999999 보장)
+        String authCode = String.format("%06d", new Random().nextInt(1000000));
+
+        VerificationCode verification = VerificationCode.builder()
+                .phoneNumber(request.phoneNumber())
+                .authCode(authCode)
+                .type(request.type())
+                .expiryDate(LocalDateTime.now().plusMinutes(3))
+                .build();
+
+        verificationCodeRepository.save(verification);
+
+        // 로깅: 실제 SMS 발송 전 콘솔 확인용
+        System.out.println(">>> [AuthCode] Phone: " + request.phoneNumber() + " | Code: " + authCode);
+
+        return 180; // 3분
+    }
+
+    @Transactional
+    public void checkVerificationCode(VerificationCheckRequest request) {
+        VerificationCode code = verificationCodeRepository.findTopByPhoneNumberAndTypeOrderByExpiryDateDesc(
+                        request.phoneNumber(), request.type())
+                .orElseThrow(() -> new CustomException(ErrorCode.AUTH_INVALID_CODE));
+
+        if (code.isExpired()) {
+            throw new CustomException(ErrorCode.TOKEN_EXPIRED);
+        }
+
+        if (!code.getAuthCode().equals(request.authCode())) {
+            throw new CustomException(ErrorCode.AUTH_INVALID_CODE);
+        }
+
+        // 보안: 인증 성공 시 해당 코드 삭제 (재사용 방지)
+        verificationCodeRepository.deleteByPhoneNumberAndType(request.phoneNumber(), request.type());
     }
 
     // [공통] 토큰 응답 생성 메서드 (회원가입/로그인에서 같이 씀)
