@@ -2,9 +2,7 @@ package com.careerhi.api.domain.report.service;
 
 import com.careerhi.api.domain.profile.entity.Profile;
 import com.careerhi.api.domain.profile.repository.ProfileRepository;
-import com.careerhi.api.domain.report.dto.AiReportResult;
-import com.careerhi.api.domain.report.dto.ReportDetailResponse;
-import com.careerhi.api.domain.report.dto.ReportIdResponse;
+import com.careerhi.api.domain.report.dto.*;
 import com.careerhi.api.domain.report.entity.Report;
 import com.careerhi.api.domain.report.repository.ReportRepository;
 import com.careerhi.api.domain.user.entity.User;
@@ -13,8 +11,16 @@ import com.careerhi.common.exception.CustomException;
 import com.careerhi.common.exception.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -89,6 +95,67 @@ public class ReportService {
         } catch (Exception e) {
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
+    }
+    @Transactional(readOnly = true)
+    public ReportListResponse getReportList(String email, int page, int size) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        Pageable pageable = PageRequest.of(Math.max(0, page - 1), size, Sort.by("createdAt").descending());
+        Page<Report> paged = reportRepository.findAllByUser(user, pageable);
+
+        DateTimeFormatter historyFmt = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+
+        List<ReportHistoryItem> history = paged.getContent().stream()
+                .map(r -> ReportHistoryItem.builder()
+                        .reportId(r.getId())
+                        .title(r.getUser().getName() + " - " + r.getTargetJob())
+                        .date(r.getCreatedAt() != null ? r.getCreatedAt().format(historyFmt) : "")
+                        .matchRate(r.getMatchRate())
+                        .canViewSpec(true)
+                        .canViewReport(true)
+                        .build())
+                .collect(Collectors.toList());
+
+        PaginationResponse pagination = PaginationResponse.builder()
+                .currentPage(page)
+                .totalPages(paged.getTotalPages())
+                .totalElements(paged.getTotalElements())
+                .build();
+
+        List<Report> allReports = reportRepository.findAllByUser(user, Sort.by("createdAt").ascending());
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+        List<GrowthPoint> growthChart = allReports.stream()
+                .map(r -> GrowthPoint.builder()
+                        .date(r.getCreatedAt() != null ? r.getCreatedAt().format(fmt) : "")
+                        .matchRate(r.getMatchRate())
+                        .build())
+                .collect(Collectors.toList());
+
+        String chartAnalysis = "최근 리포트 기반 성장 추세입니다.";
+
+        return ReportListResponse.builder()
+                .growthChart(growthChart)
+                .chartAnalysis(chartAnalysis)
+                .reportHistory(history)
+                .pagination(pagination)
+                .build();
+    }
+
+    @Transactional
+    public void deleteReport(String email, Long reportId) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new CustomException(ErrorCode.REPORT_NOT_FOUND));
+
+        // 소유자 검증: 소유자가 아니면 존재하지 않는 것처럼 처리 (보안상의 이유로)
+        if (!report.getUser().getId().equals(user.getId())) {
+            throw new CustomException(ErrorCode.REPORT_NOT_FOUND);
+        }
+
+        reportRepository.delete(report);
     }
 }
 

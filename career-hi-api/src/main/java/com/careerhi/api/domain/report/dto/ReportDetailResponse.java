@@ -1,12 +1,18 @@
 package com.careerhi.api.domain.report.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ReportDetailResponse {
 
     private Long reportId;
@@ -26,6 +32,9 @@ public class ReportDetailResponse {
     // --- 내부 클래스 ---
 
     @Getter @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class CertificateAnalysis {
         private String title;
         private List<String> required;
@@ -35,6 +44,9 @@ public class ReportDetailResponse {
     }
 
     @Getter @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AwardAnalysis {
         private String title;
         private List<ChartData> charts; // 막대 그래프 데이터
@@ -43,6 +55,9 @@ public class ReportDetailResponse {
     }
 
     @Getter @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ChartData {
         private String label;
         private int userPercent;
@@ -51,18 +66,27 @@ public class ReportDetailResponse {
 
     // 제목(summary)과 불릿 포인트 리스트(details)를 묶는 공통 클래스
     @Getter @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class TextSection {
         private String summary;
         private List<String> details;
     }
 
     @Getter @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class SkillGap {
         private String title;
         private List<SkillGapItem> items; // 부족한 스택 리스트
     }
 
     @Getter @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class SkillGapItem {
         private String badgeTitle;    // 예: TOEIC
         private String badgeValue;    // 예: 914/850
@@ -72,6 +96,9 @@ public class ReportDetailResponse {
     }
 
     @Getter @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class PortfolioAnalysis {
         private String title;
         private boolean isPositive;
