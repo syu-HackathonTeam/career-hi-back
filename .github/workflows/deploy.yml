@@ -35,14 +35,17 @@ jobs:
       - name: Execute Server
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
-          script: |
-            sudo fuser -k 8080/tcp || true
-            rm -f /home/ubuntu/app/*-plain.jar
-            
-            nohup java -jar -Duser.timezone=Asia/Seoul \
-              -DDB_USERNAME=root \
-              -DDB_PASSWORD=${{ secrets.DB_PASSWORD }} \
-              /home/ubuntu/app/*.jar > /home/ubuntu/nohup.out 2>&1 &
+            host: ${{ secrets.HOST }}
+            username: ${{ secrets.USERNAME }}
+            key: ${{ secrets.KEY }}
+            script: |
+              sudo fuser -k 8080/tcp || true
+              rm -f /home/ubuntu/app/*-plain.jar
+              
+              nohup java -Xmx400M -jar -Duser.timezone=Asia/Seoul \
+                -Dspring.datasource.url=jdbc:mariadb://localhost:3306/career_hi \
+                -Dspring.datasource.username=root \
+                -Dspring.datasource.password=${{ secrets.DB_PASSWORD }} \
+                -Djwt.secret=${{ secrets.JWT_SECRET }} \
+                -Dopenai.api.key=${{ secrets.OPENAI_API_KEY }} \
+                /home/ubuntu/app/*.jar > /home/ubuntu/nohup.out 2>&1 &
