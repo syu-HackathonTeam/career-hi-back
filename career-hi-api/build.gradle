@@ -2,9 +2,13 @@ dependencies {
 	implementation project(':career-hi-common')
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 test {
 	useJUnitPlatform()
 	failOnNoDiscoveredTests = false
+}
+tasks.named('test') {
+	useJUnitPlatform()
 }
