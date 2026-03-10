@@ -6,10 +6,12 @@ import com.careerhi.api.domain.auth.repository.RefreshTokenRepository;
 import com.careerhi.api.domain.auth.repository.VerificationCodeRepository;
 import com.careerhi.api.domain.user.entity.User;
 import com.careerhi.api.domain.user.repository.UserRepository;
+import com.careerhi.api.global.infra.sms.SmsService;
 import com.careerhi.api.global.jwt.JwtTokenProvider;
 import com.careerhi.common.exception.ErrorCode;
 import com.careerhi.common.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,20 +25,40 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider; // 토큰 생성기 주입
-    private final RefreshTokenRepository refreshTokenRepository; // [추가]
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final VerificationCodeRepository verificationCodeRepository;
+    private final SmsService smsService;
 
-    // [1] 회원가입
+    @Value("${coolsms.test-mode:true}")
+    private boolean isTestMode;
+
+    /**
+     * [1] 회원가입 (인증번호 최종 검증 단계 추가)
+     */
     @Transactional
     public SignupResponse signup(SignupRequest request) {
+        // 1. DB에서 해당 번호로 발송된 가장 최근 인증 코드 조회
+        VerificationCode verification = verificationCodeRepository.findTopByPhoneNumberAndTypeOrderByExpiryDateDesc(
+                        request.getPhoneNumber(), "SIGNUP")
+                .orElseThrow(() -> new CustomException(ErrorCode.AUTH_INVALID_CODE));
+
+        // 2. 인증 코드 유효성 검증 (만료 여부 및 번호 일치 여부)
+        if (verification.isExpired()) {
+            throw new CustomException(ErrorCode.TOKEN_EXPIRED);
+        }
+
+        if (!verification.getAuthCode().equals(request.getAuthCode())) {
+            throw new CustomException(ErrorCode.AUTH_INVALID_CODE);
+        }
+
+        // 3. 이메일 중복 체크
         if (userRepository.existsByEmail(request.getEmail())) {
-            // ★ 수정됨
             throw new CustomException(ErrorCode.EMAIL_DUPLICATED);
         }
 
+        // 4. 유저 저장
         String encodedPassword = passwordEncoder.encode(request.getPassword());
-
         User newUser = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
@@ -47,44 +69,34 @@ public class AuthService {
 
         userRepository.save(newUser);
 
-        // ★ 진짜 토큰 발급으로 교체
+        // 5. 보안: 가입 완료 후 사용된 인증 코드 삭제 (재사용 방지)
+        verificationCodeRepository.deleteByPhoneNumberAndType(request.getPhoneNumber(), "SIGNUP");
+
         return createTokenResponse(newUser);
     }
 
-    // [2] 로그인 (새로 추가됨)
     @Transactional(readOnly = true)
     public SignupResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                // ★ 수정됨
                 .orElseThrow(() -> new CustomException(ErrorCode.LOGIN_FAILED));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            // ★ 수정됨
             throw new CustomException(ErrorCode.LOGIN_FAILED);
         }
 
-        // 3. 토큰 발급 및 응답
         return createTokenResponse(user);
     }
 
     @Transactional
     public void logout(String accessToken) {
-        // 1. Access Token에서 유저 정보를 가져옴 (유효성 검증은 SecurityFilter에서 이미 끝난 상태)
         String email = jwtTokenProvider.getEmailFromToken(accessToken);
-
-        // 2. DB에 저장된 해당 유저의 Refresh Token 삭제 (다음에 reissue 요청이 오면 실패하게 됨)
         refreshTokenRepository.deleteByEmail(email);
-
-        // 3. (심화) Redis를 쓰고 있다면 Access Token을 블랙리스트에 등록해서
-        // 만료 전까지 재사용 못 하게 막는 로직을 여기에 추가 예정.... 언젠가 .. 하겠지 ...
     }
 
     @Transactional
     public int sendVerificationCode(VerificationSendRequest request) {
-        // 기존 번호의 인증 데이터 삭제 (깔끔한 상태 유지)
         verificationCodeRepository.deleteByPhoneNumberAndType(request.phoneNumber(), request.type());
 
-        // 6자리 인증번호 생성 (000000 ~ 999999 보장)
         String authCode = String.format("%06d", new Random().nextInt(1000000));
 
         VerificationCode verification = VerificationCode.builder()
@@ -96,13 +108,23 @@ public class AuthService {
 
         verificationCodeRepository.save(verification);
 
-        // 로깅: 실제 SMS 발송 전 콘솔 확인용
-        System.out.println(">>> [AuthCode] Phone: " + request.phoneNumber() + " | Code: " + authCode);
+        if (isTestMode) {
+            System.out.println("======= [CONSOL TEST MODE] =======");
+            System.out.println("수신번호: " + request.phoneNumber());
+            System.out.println("인증번호: " + authCode);
+            System.out.println("==================================");
+        } else {
+            smsService.sendVerificationCode(request.phoneNumber(), authCode);
+        }
 
-        return 180; // 3분
+        return 180;
     }
 
-    @Transactional
+    /**
+     * [참고] UI에서 '인증 확인' 버튼 클릭 시 호출되는 메서드
+     * 가입 단계에서 한 번 더 확인하므로, 여기서는 삭제 로직을 빼는 것이 흐름상 안전할 수 있습니다.
+     */
+    @Transactional(readOnly = true)
     public void checkVerificationCode(VerificationCheckRequest request) {
         VerificationCode code = verificationCodeRepository.findTopByPhoneNumberAndTypeOrderByExpiryDateDesc(
                         request.phoneNumber(), request.type())
@@ -115,12 +137,8 @@ public class AuthService {
         if (!code.getAuthCode().equals(request.authCode())) {
             throw new CustomException(ErrorCode.AUTH_INVALID_CODE);
         }
-
-        // 보안: 인증 성공 시 해당 코드 삭제 (재사용 방지)
-        verificationCodeRepository.deleteByPhoneNumberAndType(request.phoneNumber(), request.type());
     }
 
-    // [공통] 토큰 응답 생성 메서드 (회원가입/로그인에서 같이 씀)
     private SignupResponse createTokenResponse(User user) {
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtTokenProvider.createRefreshToken();
@@ -133,7 +151,7 @@ public class AuthService {
                         .build())
                 .tokenInfo(SignupResponse.TokenInfo.builder()
                         .grantType("Bearer")
-                        .accessToken(accessToken) // 진짜 토큰!
+                        .accessToken(accessToken)
                         .refreshToken(refreshToken)
                         .accessTokenExpiresIn(3600L)
                         .refreshTokenExpiresIn(1209600L)
