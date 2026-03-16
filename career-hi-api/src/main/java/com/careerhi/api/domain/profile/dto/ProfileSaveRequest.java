@@ -2,7 +2,8 @@ package com.careerhi.api.domain.profile.dto;
 
 import com.careerhi.api.domain.profile.entity.*;
 import com.careerhi.api.domain.user.entity.User;
-import jakarta.validation.Valid; // 중요: 내부 객체 검증을 위해 반드시 필요
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -14,64 +15,66 @@ import java.util.stream.Collectors;
 
 /**
  * 유저의 프로필 저장 요청을 받는 DTO
- * 피그마 필수값: 이름, 학력(학력수준), 희망직군, 세부사항(subRoles)
+ * 필수값 검증(@Valid) 및 중첩 구조 반영
  */
 @Getter
 @NoArgsConstructor
 public class ProfileSaveRequest {
 
-    // @Valid: 이 어노테이션이 있어야 BasicInfo 내부의 @NotBlank 등이 작동합니다.
-    @Valid
-    @NotNull(message = "기본 정보(BasicInfo)는 필수 입력 항목입니다.")
+    @Valid @NotNull(message = "기본 정보는 필수입니다.")
     private BasicInfo basicInfo;
 
-    @Valid
-    @NotNull(message = "직무 정보(JobInfo)는 필수 입력 항목입니다.")
+    @Valid @NotNull(message = "직무 정보는 필수입니다.")
     private JobInfo jobInfo;
 
-    // SpecInfo는 필드들이 선택 사항이므로 @Valid만 붙여 내부 구조를 확인하게 합니다.
-    @Valid
-    @NotNull(message = "스펙 정보(SpecInfo) 객체 자체는 전달되어야 합니다. (빈 리스트 가능)")
+    @Valid @NotNull(message = "스펙 정보는 필수입니다.")
     private SpecInfo specInfo;
 
-    private String portfolioUrl;
+    @Valid
+    private ProfileResponse.PortfolioInfo portfolio;
 
-    // --- 1. 기본 정보 (이름, 학력 포함) ---
     @Getter @NoArgsConstructor
     public static class BasicInfo {
-        @NotBlank(message = "이름은 필수 입력값입니다.") // 피그마 필수
+        @NotBlank(message = "이름은 필수입니다.")
         private String name;
 
-        @NotNull(message = "학적 상태(AcademicStatus)를 선택해주세요.")
+        @NotNull(message = "학적 상태는 필수입니다.")
         private AcademicStatus academicStatus;
 
-        private String schoolName; // 선택 사항 (피그마 기준)
-        private String major;      // 선택 사항 (피그마 기준)
+        private String schoolName;
+        private String major;
 
-        @NotBlank(message = "학력 수준(예: 대학교 재학, 졸업 등)은 필수입니다.") // 피그마 필수
+        @NotBlank(message = "최종 학력 수준은 필수입니다.")
         private String educationLevel;
 
-        private String schoolType; // 선택 사항
+        private String schoolType;
     }
 
-    // --- 2. 직무 정보 (희망직군, 세부사항 포함) ---
     @Getter @NoArgsConstructor
     public static class JobInfo {
-        @NotNull(message = "희망 직군은 필수 선택 항목입니다.") // 피그마 필수
+        @NotNull(message = "희망 직군은 필수입니다.")
         private JobCategory targetJob;
 
-        // @NotEmpty: 리스트가 null이 아니고, 크기가 0보다 커야 함을 보장합니다.
-        @NotEmpty(message = "세부 역할(세부사항)은 최소 하나 이상 선택해야 합니다.") // 피그마 필수
+        @NotEmpty(message = "세부 직무를 최소 하나 이상 선택해주세요.")
         private List<String> subRoles;
     }
 
-    // --- 3. 스펙 정보 (자격증, 수상 등 - 선택 사항) ---
     @Getter @NoArgsConstructor
     public static class SpecInfo {
         private List<String> certificates;
         private List<LanguageDto> languageTests;
         private List<AwardDto> awards;
         private List<String> codingLanguages;
+    }
+
+    @Getter @NoArgsConstructor
+    public static class PortfolioInfo {
+        @JsonProperty("Url")      // JSON의 'Url'을 자바의 'url'로 매핑
+        private String url;
+        @JsonProperty("FileName")
+        private String fileName;
+        @JsonProperty("FileUrl")
+        private String fileUrl;
     }
 
     @Getter @NoArgsConstructor
@@ -88,7 +91,8 @@ public class ProfileSaveRequest {
     }
 
     /**
-     * DTO 데이터를 바탕으로 Profile 엔티티를 생성하는 빌더 메서드
+     * DTO -> Entity 변환 메서드
+     * 신규 필드인 portfolioFileUrl과 educationLevel 등을 모두 매핑해야 합니다.
      */
     public Profile toEntity(User user) {
         return Profile.builder()
@@ -109,7 +113,9 @@ public class ProfileSaveRequest {
                 .awards(this.specInfo.getAwards().stream()
                         .map(a -> new Award(a.getContestName(), a.getAwardName()))
                         .collect(Collectors.toList()))
-                .portfolioUrl(this.portfolioUrl)
+                .portfolioUrl(this.portfolio != null ? this.portfolio.getUrl() : null)
+                .portfolioFileUrl(this.portfolio != null ? this.portfolio.getFileUrl() : null)
+                .portfolioFileName(this.portfolio != null ? this.portfolio.getFileName() : null)
                 .build();
     }
 }
