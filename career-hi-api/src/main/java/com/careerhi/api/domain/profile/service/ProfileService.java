@@ -19,32 +19,79 @@ public class ProfileService {
     private final ProfileRepository profileRepository;
     private final UserRepository userRepository;
 
+    /**
+     * 2-1. 프로필 등록 (Create Profile)
+     * 기존 프로필이 있으면 삭제 후 새로 생성 (Overwrite)
+     */
     @Transactional
     public void saveProfile(String email, ProfileSaveRequest request) {
-        // 1. 로그인한 유저 정보 찾기
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        // 2. 기존 프로필이 있다면 삭제 (덮어쓰기 로직)
-        // (간단하게 구현하기 위해 기존 거 지우고 새로 저장하는 방식 선택)
+        // 기존 프로필이 있다면 삭제 (명세서의 '덮어쓰기' 정책 유지)
         profileRepository.findByUser(user)
                 .ifPresent(profileRepository::delete);
 
-        // 3. DTO를 Entity로 변환
+        // DTO의 중첩 구조를 반영한 toEntity 호출
         Profile profile = request.toEntity(user);
-
-        // 4. 저장
         profileRepository.save(profile);
     }
 
+    /**
+     * 2-2. 프로필 조회 (Get Profile)
+     */
     @Transactional(readOnly = true)
     public ProfileResponse getProfile(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         Profile profile = profileRepository.findByUser(user)
-                .orElseThrow(() -> new CustomException(ErrorCode.PROFILE_NOT_FOUND)); // 또는 PROFILE_NOT_FOUND 에러 추가 권장
+                .orElseThrow(() -> new CustomException(ErrorCode.PROFILE_NOT_FOUND));
 
         return ProfileResponse.from(profile);
+    }
+
+    /**
+     * 2-3. 프로필 부분 수정 (Patch Profile)
+     * 넘어온 필드(BasicInfo, JobInfo, SpecInfo, Portfolio)가 있을 때만 업데이트
+     */
+    @Transactional
+    public void updateProfile(String email, ProfileSaveRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        Profile profile = profileRepository.findByUser(user)
+                .orElseThrow(() -> new CustomException(ErrorCode.PROFILE_NOT_FOUND));
+
+        // 1. 기본 정보 업데이트 (전달된 경우에만)
+        if (request.getBasicInfo() != null) {
+            profile.updateBasicInfo(
+                    request.getBasicInfo().getName(),
+                    request.getBasicInfo().getAcademicStatus(),
+                    request.getBasicInfo().getSchoolName(),
+                    request.getBasicInfo().getMajor(),
+                    request.getBasicInfo().getEducationLevel(),
+                    request.getBasicInfo().getSchoolType()
+            );
+        }
+
+        // 2. 직무 정보 업데이트
+        if (request.getJobInfo() != null) {
+            profile.updateJobInfo(
+                    request.getJobInfo().getTargetJob(),
+                    request.getJobInfo().getSubRoles()
+            );
+        }
+
+        // 3. 포트폴리오 정보 업데이트 (PascalCase 매핑 반영된 객체 사용)
+        if (request.getPortfolio() != null) {
+            profile.updatePortfolio(
+                    request.getPortfolio().getUrl(),
+                    request.getPortfolio().getFileName(),
+                    request.getPortfolio().getFileUrl()
+            );
+        }
+
+        // SpecInfo 등 나머지 필드도 필요에 따라 동일한 패턴으로 추가 가능합니다.
     }
 }

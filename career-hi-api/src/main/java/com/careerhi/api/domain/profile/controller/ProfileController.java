@@ -32,4 +32,13 @@ public class ProfileController {
         ProfileResponse response = profileService.getProfile(userDetails.getUsername());
         return ApiResponse.success("프로필 조회에 성공하였습니다.", response);
     }
+
+    @PatchMapping
+    public ApiResponse<Void> patchProfile(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody ProfileSaveRequest request // PATCH이므로 @Valid는 선택적(부분 데이터만 올 수 있음)
+    ) {
+        profileService.updateProfile(userDetails.getUsername(), request);
+        return ApiResponse.success("프로필 정보가 수정되었습니다.");
+    }
 }

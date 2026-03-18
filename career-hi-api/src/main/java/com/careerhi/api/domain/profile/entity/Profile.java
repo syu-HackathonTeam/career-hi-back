@@ -20,73 +20,68 @@ public class Profile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 어떤 유저의 프로필인지 연결 (1:1 관계)
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
     // [기본 정보]
     @Column(nullable = false)
-    private String name; // 이름
+    private String name;
 
     @Enumerated(EnumType.STRING)
-    private AcademicStatus academicStatus; // 학적 상태 (재학/졸업 등)
+    private AcademicStatus academicStatus;
 
-    private String schoolName; // 학교명
-    private String major; // 전공
-    private String educationLevel; // 최종학력 (예: 대학교 이상 졸업)
-    private String schoolType; // 대학 종류 (예: 대학교 (4년제))
+    private String schoolName;
+    private String major;
+    private String educationLevel;
+    private String schoolType;
 
     // [직업 정보]
     @Enumerated(EnumType.STRING)
-    private JobCategory targetJob; // 희망 직군 (IT/데이터 등)
+    private JobCategory targetJob;
 
-    // 세부 직무는 여러 개 선택 가능 (예: 백엔드, 데이터엔지니어) -> 별도 테이블로 저장
     @ElementCollection
     @CollectionTable(name = "profile_sub_roles", joinColumns = @JoinColumn(name = "profile_id"))
     @Column(name = "role_name")
     private List<String> subRoles = new ArrayList<>();
 
     // [스펙 정보]
-    // 자격증 (단순 문자열 리스트)
     @ElementCollection
     @CollectionTable(name = "profile_certificates", joinColumns = @JoinColumn(name = "profile_id"))
     @Column(name = "certificate_name")
     private List<String> certificates = new ArrayList<>();
 
-    // 사용 언어 (Java, Python 등)
     @ElementCollection
     @CollectionTable(name = "profile_coding_languages", joinColumns = @JoinColumn(name = "profile_id"))
     @Column(name = "language_name")
     private List<String> codingLanguages = new ArrayList<>();
 
-    // 어학 성적 (복잡한 정보라 별도 엔티티 분리 안 하고 Embedded로 처리 가능하지만, 관리를 위해 ElementCollection 사용)
     @ElementCollection
     @CollectionTable(name = "profile_language_tests", joinColumns = @JoinColumn(name = "profile_id"))
     private List<LanguageTest> languageTests = new ArrayList<>();
 
-    // 수상 내역
     @ElementCollection
     @CollectionTable(name = "profile_awards", joinColumns = @JoinColumn(name = "profile_id"))
     private List<Award> awards = new ArrayList<>();
 
     // [포트폴리오]
-    private String portfolioUrl; // 깃허브 등 링크
-    private String portfolioFileUrl; // 업로드된 파일 경로
+    private String portfolioUrl;
+    private String portfolioFileUrl;
+    private String portfolioFileName;
 
     @Builder
     public Profile(User user, String name, AcademicStatus academicStatus, String schoolName,
                    String major, String educationLevel, String schoolType, JobCategory targetJob,
                    List<String> subRoles, List<String> certificates, List<String> codingLanguages,
                    List<LanguageTest> languageTests, List<Award> awards,
-                   String portfolioUrl, String portfolioFileUrl) {
+                   String portfolioUrl, String portfolioFileUrl, String portfolioFileName) {
         this.user = user;
         this.name = name;
         this.academicStatus = academicStatus;
         this.schoolName = schoolName;
         this.major = major;
-        this.educationLevel = educationLevel; // <- 할당 부분 수정
-        this.schoolType = schoolType;         // <- 할당 부분 수정
+        this.educationLevel = educationLevel;
+        this.schoolType = schoolType;
         this.targetJob = targetJob;
         this.subRoles = subRoles;
         this.certificates = certificates;
@@ -95,10 +90,41 @@ public class Profile {
         this.awards = awards;
         this.portfolioUrl = portfolioUrl;
         this.portfolioFileUrl = portfolioFileUrl;
+        this.portfolioFileName = portfolioFileName;
     }
 
-    // 수정 메서드 (나중에 사용)
-    public void updatePortfolioFile(String fileUrl) {
-        this.portfolioFileUrl = fileUrl;
+    // --- 비즈니스 로직 (업데이트 메서드) ---
+
+    /**
+     * 기본 정보 업데이트
+     */
+    public void updateBasicInfo(String name, AcademicStatus academicStatus, String schoolName,
+                                String major, String educationLevel, String schoolType) {
+        if (name != null) this.name = name;
+        if (academicStatus != null) this.academicStatus = academicStatus;
+        if (schoolName != null) this.schoolName = schoolName;
+        if (major != null) this.major = major;
+        if (educationLevel != null) this.educationLevel = educationLevel;
+        if (schoolType != null) this.schoolType = schoolType;
+    }
+
+    /**
+     * 직무 정보 업데이트
+     */
+    public void updateJobInfo(JobCategory targetJob, List<String> subRoles) {
+        if (targetJob != null) this.targetJob = targetJob;
+        if (subRoles != null) {
+            this.subRoles.clear(); // 기존 리스트를 비우고
+            this.subRoles.addAll(subRoles); // 새로운 리스트로 교체
+        }
+    }
+
+    /**
+     * 포트폴리오 업데이트
+     */
+    public void updatePortfolio(String url, String fileName, String fileUrl) {
+        if (url != null) this.portfolioUrl = url;
+        if (fileName != null) this.portfolioFileName = fileName;
+        if (fileUrl != null) this.portfolioFileUrl = fileUrl;
     }
 }
