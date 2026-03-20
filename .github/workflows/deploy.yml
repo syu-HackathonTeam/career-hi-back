@@ -48,4 +48,7 @@ jobs:
                 -Dspring.datasource.password=${{ secrets.DB_PASSWORD }} \
                 -Djwt.secret=${{ secrets.JWT_SECRET }} \
                 -Dopenai.api.key=${{ secrets.OPENAI_API_KEY }} \
+                -DCOOLSMS_API_KEY=${{ secrets.COOLSMS_API_KEY }} \
+                -DCOOLSMS_API_SECRET=${{ secrets.COOLSMS_API_SECRET }} \
+                -DCOOLSMS_FROM_NUMBER=${{ secrets.COOLSMS_FROM_NUMBER }} \
                 /home/ubuntu/app/*.jar > /home/ubuntu/nohup.out 2>&1 &
