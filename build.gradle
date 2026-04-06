@@ -59,6 +59,9 @@ project(':career-hi-api') {
 		runtimeOnly 'com.h2database:h2' // 로컬 테스트용
 		// runtimeOnly 'mysql:mysql-connector-java'
 
+		// AWS
+		implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:3.1.0'
+
 		// ★ CoolSMS SDK 추가 -> 260310 (인증번호 전송 api)
 		implementation 'net.nurigo:sdk:4.3.0'
 
