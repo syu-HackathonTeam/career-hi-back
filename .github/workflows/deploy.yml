@@ -51,4 +51,6 @@ jobs:
                 -DCOOLSMS_API_KEY=${{ secrets.COOLSMS_API_KEY }} \
                 -DCOOLSMS_API_SECRET=${{ secrets.COOLSMS_API_SECRET }} \
                 -DCOOLSMS_FROM_NUMBER=${{ secrets.COOLSMS_FROM_NUMBER }} \
+                -Dcloud.aws.credentials.access-key=${{ secrets.AWS_ACCESS_KEY }} \
+                -Dcloud.aws.credentials.secret-key=${{ secrets.AWS_SECRET_KEY }} \
                 /home/ubuntu/app/*.jar > /home/ubuntu/nohup.out 2>&1 &
