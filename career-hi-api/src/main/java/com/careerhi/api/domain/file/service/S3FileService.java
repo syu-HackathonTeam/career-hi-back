@@ -49,4 +49,13 @@ public class S3FileService implements FileService {
             throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
         }
     }
+    @Override
+    public void delete(String fileName) {
+        try {
+            // S3 버킷에서 해당 파일명(Key)을 가진 객체 삭제
+            s3Template.deleteObject(bucket, fileName);
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.FILE_DELETE_ERROR);
+        }
+    }
 }
