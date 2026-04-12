@@ -44,6 +44,12 @@ public class SecurityConfig {
                         .requestMatchers("/", "/api/v1/auth/**", "/h2-console/**", "/api/health").permitAll()
                         // 그 외 모든 요청은 인증(토큰) 필요!
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // SecurityConfig.java 내부
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 // ★ JWT 필터 추가: UsernamePasswordAuthenticationFilter 앞에서 미리 검사
